@@ -1,0 +1,45 @@
+module MetaC-CSP/generate-csp/alts
+
+imports
+
+  signatures/BaseC/Expr-sig
+  signatures/BaseC/Identifiers-sig
+  signatures/MetaC-CSP-sig
+  signatures/pat-csp-sig
+  MetaC-CSP/desugar
+  MetaC-CSP/generate-csp/expr
+
+rules
+
+  generate-csp-comm-chan-name(|channels) = fail
+
+  generate-csp-def-expr(|name, state, ops):
+    (CSPAlts(cases), (cs, ps, p))
+    -> (cs', ps', PAT_SequentialExpr([
+        PAT_Parens(PAT_GeneralChoiceExpr(choices)),
+        p
+      ]))
+      where
+        (cs', ps', choices) := <foldr(!(cs, ps, []), generate-csp-alt(|name, state, ops))> cases
+
+  generate-csp-alt(|name, state, ops):
+    (CSPAlt(guard, comm, body), (cs, ps, choices))
+    -> (cs', ps', choices')
+      where
+        (cs', ps', p) := <generate-csp-def-expr(|name, state, ops)> (body, (cs, ps, PAT_Skip()))
+        ; choices' := <conc> (choices, [PAT_Parens(PAT_SequentialExpr([
+            <generate-csp-alt-guard(|state)> (guard, <generate-cps-alt-comm(|cs)> comm),
+            p
+          ]))])
+
+  generate-csp-alt-guard(|s-defs): (None(), p) -> p
+  generate-csp-alt-guard(|s-defs): (CSPAltGuard(_, e), p)
+    -> PAT_GuardExpr(<generate-csp-expr(|s-defs)> e, p)
+
+  generate-cps-alt-comm(|p-defs):
+    CSPChanRead(Var(Identifier(c)), _)
+    -> PAT_ChannelExprRead(<generate-csp-comm-chan-name(|p-defs)> c, PAT_Integer("1"), PAT_Skip())
+
+  generate-cps-alt-comm(|p-defs):
+    Var(Identifier(c))
+    -> PAT_ChannelExprRead(<generate-csp-comm-chan-name(|p-defs)> c, PAT_Integer("1"), PAT_Skip())

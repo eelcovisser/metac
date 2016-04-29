@@ -36,3 +36,31 @@ test define type modifiers [[
 test define storage modifiers [[
   extern static int32 a;
 ]] run test-utils-get-storage to Storage([Extern, Static])
+
+test refer to variable [[
+  int [[a]];
+  void f() { [[a]]; }
+]] resolve #2 to #1
+
+test refer to parameter [[
+  void f(int [[a]]) { [[a]]; }
+]] resolve #2 to #1
+
+test refer to function [[
+  void [[f]]() { [[f]](); }
+]] resolve #2 to #1
+
+test refer to enum [[
+  enum { [[a]] };
+  void f() { [[a]]; }
+]] resolve #2 to #1
+
+test refer to define [[
+  #define [[FOO]] 4
+  void f() { [[FOO]]; }
+]] resolve #2 to #1
+
+test get define value [[
+  #define FOO 4
+  void f() { [[FOO]]; }
+]] run get-value to Integer("4"){_}

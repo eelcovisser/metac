@@ -17,17 +17,25 @@ rules
   is-type-qualifier =
     ?Const() <+ ?Volatile()
 
+  desugar-to-unsigned: Char()  -> UInt8()
   desugar-to-unsigned: Int8()  -> UInt8()
   desugar-to-unsigned: Int16() -> UInt16()
   desugar-to-unsigned: Int32() -> UInt32()
   desugar-to-unsigned: Int64() -> UInt64()
 
+  // when it is explicitly `signed`
+  desugar-to-signed: Char() -> Int8()
+
   desugar-unsigned =
     ?specifiers
     ; try(fetch(?Unsigned()) ; <map(try(desugar-to-unsigned))> specifiers)
+    ; try(fetch(?Signed())   ; <map(try(desugar-to-signed))> specifiers)
     ; filter(not(?Unsigned() <+ ?Signed()))
 
-  desugar-to-sized-ints: Char()  -> Int8()
+  // char is not the same as signed char
+  // https://github.com/arian/metac/issues/24
+  // desugar-to-sized-ints: Char()  -> Int8()
+
   desugar-to-sized-ints: Short() -> Int16()
   desugar-to-sized-ints: Int()   -> Int32()
   desugar-to-sized-ints: Long()  -> Int64()
@@ -50,19 +58,19 @@ rules
   find-decl =
     oncetd(?Decl(_) ; ?d) ; !d
 
+  desugar-array-size: Some(value) -> Some(<try(number-to-int)> value)
   desugar-array-size: None() -> None()
-  desugar-array-size: Some(value) -> Some(<number-to-int> value)
-
-  merge-types:
-    (Type(mods, type), ptr, ArrayDecl(d, size)) -> t
-    where
-      t := <merge-types> (Type(mods, Array(type, <desugar-array-size> size)), ptr, d)
 
   merge-types:
     (base-type@Type(mods, type), Some(Pointer(qualifiers, ptr)), decl) -> t
     where
       mods* := <conc> (mods, qualifiers)
       ; t := <merge-types> (Type(mods*, Pointer(type)), ptr, decl)
+
+  merge-types:
+    (Type(mods, type), ptr, ArrayDecl(d, size)) -> t
+    where
+      t := <merge-types> (Type(mods, Array(type, <desugar-array-size> size)), ptr, d)
 
   merge-types:
     (Type(mods, type), ptr, FuncDecl(d, params)) -> t

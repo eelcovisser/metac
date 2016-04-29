@@ -1,0 +1,30 @@
+*~
+/.cache
+/.classpath
+/.project
+/.settings
+/target/
+
+*.c
+*.csp
+*.aterm
+
+# library
+libcsp/
+
+lib/*.a
+lib/*.o
+
+# executables
+fan-in
+fan-out
+fib
+fifo-buffer
+inputs
+multi-readers
+multi-writers
+random-counter
+sending-a-string
+simple
+state
+

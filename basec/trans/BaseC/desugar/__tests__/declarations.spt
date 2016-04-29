@@ -73,13 +73,46 @@ test struct declaration [[
         [
           StructDeclarator(
             Type([Const], UInt32()),
-            Declarator(_, _),
             Decl(Identifier("x")),
             None()
           )
         ]
       )],
       []
+    )
+  ])
+
+test anonymous struct should get some dummy name [[
+  struct {} a;
+]] run strip-annos to Program(_, [
+    Declaration([Struct(Some(_), [])], []),
+    VarDeclaration([], Type([], Struct(Identifier(_))), _, None())
+  ])
+
+test anonymous union should get some dummy name [[
+  union {} a;
+]] run strip-annos to Program(_, [
+    Declaration([Union(Some(_), [])], []),
+    VarDeclaration([], Type([], Union(Identifier(_))), _, None())
+  ])
+
+test typedef named struct declaration [[
+  typedef struct x {} X;
+]] run strip-annos to Program(_, [
+    Declaration([Struct(Some(Identifier("x")), [])], []),
+    TypedefDeclaration(
+      Type([], Struct(Identifier("x"))),
+      Decl(Identifier("X"))
+    )
+  ])
+
+test typedef union declaration [[
+  typedef union {} X;
+]] run strip-annos to Program(_, [
+    Declaration([Union(Some(_), [])], []),
+    TypedefDeclaration(
+      Type([], Union(Identifier(_))),
+      Decl(Identifier("X"))
     )
   ])
 
@@ -92,7 +125,6 @@ test union declaration [[
         [
           StructDeclarator(
             Type([Volatile], Function(UInt8(), [Type([], Int32())])),
-            Declarator(_, _),
             Decl(Identifier("x")),
             Some(Integer("3"))
           )

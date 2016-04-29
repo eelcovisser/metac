@@ -70,6 +70,7 @@ type rules
     where
       definition of e: t
       and <resolve-typedefs> t => t'
+      or <resolve-define-type> e => t'
 
 type rules
 
@@ -150,10 +151,20 @@ type functions
   // in typedefs.str
   resolve-typedefs: None() -> None()
 
+  resolve-define-type: None() -> None()
+
  // See section A6.1/A6.5 of "The C programming language"
  // TODO improve this
-  promote: (t1, t2) -> t
-  where
+  promote: (t1', t2') -> t
+    where (
+           t1' == Char() and Int8() => t1
+        or t1' => t1
+      )
+    and (
+           t2' == Char() and Int8() => t2
+        or t2' => t2
+      )
+    and
        ((t1 == Float64() or t2 == Float64()) and Float64() => t)
     or ((t1 == Float32() or t2 == Float32()) and Float32() => t)
     or ((t1 == UInt64()  or t2 == UInt64())  and UInt64() => t)

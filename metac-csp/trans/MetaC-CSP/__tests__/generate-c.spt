@@ -1,0 +1,139 @@
+module generate-c
+
+language MetaC
+
+test main function is untouched from goto recurse [[
+  void f() {}
+  int main() {
+    f();
+    return 0;
+  }
+]] build generate-c to "
+  void f() {}
+  signed int main() {
+    f();
+    return 0;
+  }"
+
+test declare channel variable and include csp.h header [[
+  void f() {
+    chan<int> c;
+  }
+]] build generate-c to "
+  #include <csp.h>
+  void f() {
+    Channel *c = NULL;
+  }"
+
+test channel declaration in the outer scope [[
+  chan<int> c;
+]] build generate-c to "
+  #include <csp.h>
+  Channel *c = NULL;"
+
+test empty process [[
+  process f() {
+  }
+]] build generate-c to "
+  #include <process.h>
+  typedef struct { } f_ProcessArgs;
+  void f (Process *__csp_process__) {
+    f_ProcessArgs *args = __csp_process__->args;
+    __csp_process_recurse: { }
+  }"
+
+test process with an int argument [[
+  process f(int a) {
+  }
+]] build generate-c to "
+  #include <process.h>
+  typedef struct {
+    signed int a;
+  } f_ProcessArgs;
+  void f (Process *__csp_process__) {
+    f_ProcessArgs *args = __csp_process__->args;
+    signed int a = args->a;
+    __csp_process_recurse: {}
+  }"
+
+test process recursive process [[
+  process f(int a @ int b) {
+    f(31);
+  }
+]] build generate-c to "
+  #include <process.h>
+  typedef struct {
+    signed int a;
+    signed int b;
+  } f_ProcessArgs;
+  void f (Process *__csp_process__) {
+    f_ProcessArgs *args = __csp_process__->args;
+    signed int a = args->a;
+    signed int b = args->b;
+    __csp_process_recurse: {
+      b = 31;
+      goto __csp_process_recurse;
+    }
+  }"
+
+test process recursive process without state [[
+  process f(int a) {
+    f();
+  }
+]] build generate-c to "
+  #include <process.h>
+  typedef struct {
+    signed int a;
+  } f_ProcessArgs;
+  void f (Process *__csp_process__) {
+    f_ProcessArgs *args = __csp_process__->args;
+    signed int a = args->a;
+    __csp_process_recurse: {
+      goto __csp_process_recurse;
+    }
+  }"
+
+test process with static variables and an init block [[
+  process f() {
+    static int x123;
+    static int y123;
+    process_init: {
+      x123 = 0;
+      y123 = 0;
+    }
+    x123++;
+    f();
+  }
+]] build generate-c-csp-test to "
+  typedef struct {
+  } f_ProcessArgs;
+  void f (Process *__csp_process__) {
+    f_ProcessArgs *args = __csp_process__->args;
+    signed int renamed_x123;
+    signed int renamed_y123;
+    {
+      renamed_x123 = 0;
+      renamed_y123 = 0;
+    }
+    __csp_process_recurse: {
+      renamed_x123++;
+      goto __csp_process_recurse;
+    }
+  }"
+
+test process with channels as argument [[
+  process f(chan<uint8> a, chan<uint16> b) {
+  }
+]] build generate-c to "
+  #include <process.h>
+  #include <csp.h>
+  typedef struct {
+    Channel *a;
+    Channel *b;
+  } f_ProcessArgs;
+  void f (Process *__csp_process__) {
+    f_ProcessArgs *args = __csp_process__->args;
+    Channel *a = args->a;
+    Channel *b = args->b;
+    __csp_process_recurse: { }
+  }"

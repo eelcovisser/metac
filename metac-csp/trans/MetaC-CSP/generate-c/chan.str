@@ -1,0 +1,28 @@
+module MetaC-CSP/generate-c/chan
+
+imports
+
+  BaseC/desugar/constructors
+  signatures/BaseC-sig
+  signatures/MetaC-CSP-sig
+
+rules
+
+  // Change chan<T> channel variable declarations
+
+  generate01:
+    VarDeclaration(
+      storage,
+      type@Type(mods1, CSPChan(Type(mods2, _))),
+      decl@Decl(Identifier(name)),
+      None()
+    ) -> VarDeclaration(
+    storage,
+    type,
+    decl,
+    Some(Null())
+  )
+
+  // ignore the buffered storage specifier for now
+  generate02: CSPBuffered(_) -> []
+  generate02: CSPBuffered() -> []
